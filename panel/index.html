@@ -123,7 +123,16 @@
 </head>
 <body>
 <header>🌸 Le Belle Lashes — Conversaciones</header>
-<div id="app">
+
+<div id="login" style="max-width:320px;margin:60px auto;background:white;padding:24px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.08);">
+  <div style="font-weight:600;margin-bottom:14px;">Entrar al panel</div>
+  <input id="loginUser" type="text" placeholder="Usuario" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;" autocapitalize="off" autocorrect="off">
+  <input id="loginPass" type="password" placeholder="Contraseña" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;">
+  <button id="loginBtn" style="width:100%;padding:10px;background:#d98ca0;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Entrar</button>
+  <div id="loginError" style="color:#c0392b;font-size:0.85em;margin-top:8px;"></div>
+</div>
+
+<div id="app" style="display:none;">
   <div id="lista"></div>
   <div id="conversacion">
     <div id="vacio">Selecciona una conversación</div>
@@ -135,11 +144,29 @@ const WEBHOOK_MENSAJES = "https://q3uhvgat.rpcld.co/webhook/le-code-one-obtener-
 const WEBHOOK_RESPONDER = "https://q3uhvgat.rpcld.co/webhook/le-code-one-enviar-mensaje-asesor-lbl";
 
 let authHeader = sessionStorage.getItem('lbl_panel_auth') || '';
-if (!authHeader) {
-  const user = prompt('Usuario del panel:') || '';
-  const pass = prompt('Contraseña del panel:') || '';
-  authHeader = 'Basic ' + btoa(user + ':' + pass);
-  sessionStorage.setItem('lbl_panel_auth', authHeader);
+
+document.getElementById('loginBtn').onclick = async () => {
+  const user = document.getElementById('loginUser').value;
+  const pass = document.getElementById('loginPass').value;
+  const intento = 'Basic ' + btoa(user + ':' + pass);
+  document.getElementById('loginError').textContent = 'Entrando...';
+  const res = await fetch(WEBHOOK_MENSAJES, { headers: { Authorization: intento } });
+  if (res.ok) {
+    authHeader = intento;
+    sessionStorage.setItem('lbl_panel_auth', authHeader);
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    iniciar();
+  } else {
+    document.getElementById('loginError').textContent = 'Usuario o contraseña incorrectos.';
+  }
+};
+document.getElementById('loginPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+
+if (authHeader) {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  iniciar();
 }
 
 let contactos = {};
@@ -151,7 +178,9 @@ async function cargar() {
   });
   if (!res.ok) {
     sessionStorage.removeItem('lbl_panel_auth');
-    alert('Usuario o contraseña incorrectos. Recarga la página para intentar de nuevo.');
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login').style.display = 'block';
+    document.getElementById('loginError').textContent = 'Sesión vencida, entra de nuevo.';
     return;
   }
   const rows = await res.json();
@@ -241,8 +270,10 @@ function escapeHtml(s) {
   return div.innerHTML;
 }
 
-cargar();
-setInterval(cargar, 15000);
+function iniciar() {
+  cargar();
+  setInterval(cargar, 15000);
+}
 </script>
 </body>
 </html>
