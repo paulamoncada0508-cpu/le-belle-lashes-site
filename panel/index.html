@@ -253,7 +253,7 @@ function pintarHilo(tel) {
     try {
       const res = await fetch(WEBHOOK_RESPONDER, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
         body: JSON.stringify({ telefono: tel, mensaje: texto })
       });
       if (res.ok) {
