@@ -197,6 +197,9 @@ async function cargar() {
     if (r.nombre_contacto) contactos[r.telefono].nombre = r.nombre_contacto;
     contactos[r.telefono].mensajes.push(r);
   }
+  for (const tel in contactos) {
+    contactos[tel].mensajes.sort((a, b) => a.creado_en.localeCompare(b.creado_en));
+  }
   pintarLista();
   if (telefonoActivo) pintarHilo(telefonoActivo);
 }
