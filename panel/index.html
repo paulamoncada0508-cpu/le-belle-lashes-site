@@ -40,9 +40,17 @@
     padding: 0.9rem 1rem;
     border-bottom: 1px solid #f0e8e0;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
   }
   .contacto:hover, .contacto.activo {
     background: #fbeef2;
+  }
+  .info-contacto {
+    min-width: 0;
+    flex: 1;
   }
   .contacto .nombre {
     font-weight: 600;
@@ -62,21 +70,20 @@
   }
   .badge {
     display: inline-block;
+    flex-shrink: 0;
     font-size: 0.68em;
     font-weight: 600;
-    padding: 0.15rem 0.5rem;
+    padding: 0.3rem 0.65rem;
     border-radius: 1rem;
-    margin-left: 0.4rem;
-    vertical-align: middle;
     white-space: nowrap;
   }
   .badge-pendiente {
-    background: #fdecea;
-    color: #c0392b;
+    background: #c0392b;
+    color: white;
   }
   .badge-respondido {
-    background: #eafaf1;
-    color: #1e8449;
+    background: #27ae60;
+    color: white;
   }
   #conversacion {
     flex: 1;
@@ -239,7 +246,14 @@ function pintarLista() {
     const badge = pendiente
       ? '<span class="badge badge-pendiente">Pendiente</span>'
       : '<span class="badge badge-respondido">Respondido</span>';
-    div.innerHTML = `<div class="nombre">${c.nombre}${badge}</div><div class="telefono">${tel}</div><div class="preview">${ultimo.direccion === 'saliente' ? '↩ ' : ''}${escapeHtml(ultimo.mensaje || '')}</div>`;
+    div.innerHTML = `
+      <div class="info-contacto">
+        <div class="nombre">${c.nombre}</div>
+        <div class="telefono">${tel}</div>
+        <div class="preview">${ultimo.direccion === 'saliente' ? '↩ ' : ''}${escapeHtml(ultimo.mensaje || '')}</div>
+      </div>
+      ${badge}
+    `;
     div.onclick = () => { telefonoActivo = tel; pintarLista(); pintarHilo(tel); };
     lista.appendChild(div);
   }
