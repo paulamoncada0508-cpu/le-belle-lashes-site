@@ -71,19 +71,15 @@
   .badge {
     display: inline-block;
     flex-shrink: 0;
-    font-size: 0.68em;
-    font-weight: 600;
-    padding: 0.3rem 0.65rem;
-    border-radius: 1rem;
-    white-space: nowrap;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
   }
   .badge-pendiente {
     background: #c0392b;
-    color: white;
   }
   .badge-respondido {
     background: #27ae60;
-    color: white;
   }
   #conversacion {
     flex: 1;
@@ -244,8 +240,8 @@ function pintarLista() {
     div.className = 'contacto' + (tel === telefonoActivo ? ' activo' : '');
     const pendiente = ultimo.direccion === 'entrante';
     const badge = pendiente
-      ? '<span class="badge badge-pendiente">Pendiente</span>'
-      : '<span class="badge badge-respondido">Respondido</span>';
+      ? '<span class="badge badge-pendiente"></span>'
+      : '<span class="badge badge-respondido"></span>';
     div.innerHTML = `
       <div class="info-contacto">
         <div class="nombre">${c.nombre}</div>
