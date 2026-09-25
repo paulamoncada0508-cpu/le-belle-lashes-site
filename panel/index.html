@@ -81,6 +81,14 @@
   .badge-respondido {
     background: #27ae60;
   }
+  .badge-especial {
+    background: #f1c40f;
+  }
+  .contacto .nota-especial {
+    font-size: 0.78em;
+    color: #a67c00;
+    margin-top: 2px;
+  }
   #conversacion {
     flex: 1;
     display: flex;
@@ -170,6 +178,7 @@
 <script>
 const WEBHOOK_MENSAJES = "https://q3uhvgat.rpcld.co/webhook/le-code-one-obtener-mensajes-lbl";
 const WEBHOOK_RESPONDER = "https://q3uhvgat.rpcld.co/webhook/le-code-one-enviar-mensaje-asesor-lbl";
+const WEBHOOK_ESTADOS = "https://q3uhvgat.rpcld.co/webhook/le-code-one-estados-pendientes-lbl";
 
 let authHeader = sessionStorage.getItem('lbl_panel_auth') || '';
 
@@ -199,6 +208,7 @@ if (authHeader) {
 
 let contactos = {};
 let telefonoActivo = null;
+let pendientesEspeciales = {};
 
 async function cargar() {
   const res = await fetch(WEBHOOK_MENSAJES, {
@@ -221,6 +231,17 @@ async function cargar() {
   for (const tel in contactos) {
     contactos[tel].mensajes.sort((a, b) => a.creado_en.localeCompare(b.creado_en));
   }
+
+  try {
+    const resEstados = await fetch(WEBHOOK_ESTADOS, { headers: { Authorization: authHeader } });
+    const crudo = resEstados.ok ? await resEstados.json() : {};
+    // normalizamos por si el telefono quedo guardado con o sin indicativo 57 en distintas tablas
+    pendientesEspeciales = {};
+    for (const tel in crudo) pendientesEspeciales[normalizarTelefono(tel)] = crudo[tel];
+  } catch (e) {
+    pendientesEspeciales = {};
+  }
+
   pintarLista();
   if (telefonoActivo) pintarHilo(telefonoActivo);
 }
@@ -239,14 +260,20 @@ function pintarLista() {
     const div = document.createElement('div');
     div.className = 'contacto' + (tel === telefonoActivo ? ' activo' : '');
     const pendiente = ultimo.direccion === 'entrante';
-    const badge = pendiente
-      ? '<span class="badge badge-pendiente"></span>'
-      : '<span class="badge badge-respondido"></span>';
+    const especial = pendientesEspeciales[normalizarTelefono(tel)];
+    let badgeClass = pendiente ? 'badge-pendiente' : 'badge-respondido';
+    if (!pendiente && especial) badgeClass = 'badge-especial';
+    const tituloBadge = especial ? escapeHtml(especial.join(' · ')) : '';
+    const badge = `<span class="badge ${badgeClass}" title="${tituloBadge}"></span>`;
+    const notaEspecial = (!pendiente && especial)
+      ? `<div class="nota-especial">⏳ ${escapeHtml(especial.join(' · '))}</div>`
+      : '';
     div.innerHTML = `
       <div class="info-contacto">
         <div class="nombre">${c.nombre}</div>
         <div class="telefono">${tel}</div>
         <div class="preview">${ultimo.direccion === 'saliente' ? '↩ ' : ''}${escapeHtml(ultimo.mensaje || '')}</div>
+        ${notaEspecial}
       </div>
       ${badge}
     `;
@@ -304,6 +331,11 @@ function pintarHilo(tel) {
     btn.disabled = false;
   };
   input.onkeydown = (e) => { if (e.key === 'Enter') btn.click(); };
+}
+
+function normalizarTelefono(tel) {
+  const solo = (tel || '').replace(/\D/g, '');
+  return solo.slice(-10);
 }
 
 function escapeHtml(s) {
