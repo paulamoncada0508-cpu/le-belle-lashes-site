@@ -60,6 +60,24 @@
     text-overflow: ellipsis;
     margin-top: 2px;
   }
+  .badge {
+    display: inline-block;
+    font-size: 0.68em;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 1rem;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .badge-pendiente {
+    background: #fdecea;
+    color: #c0392b;
+  }
+  .badge-respondido {
+    background: #eafaf1;
+    color: #1e8449;
+  }
   #conversacion {
     flex: 1;
     display: flex;
@@ -217,7 +235,11 @@ function pintarLista() {
     const ultimo = c.mensajes.at(-1);
     const div = document.createElement('div');
     div.className = 'contacto' + (tel === telefonoActivo ? ' activo' : '');
-    div.innerHTML = `<div class="nombre">${c.nombre}</div><div class="telefono">${tel}</div><div class="preview">${ultimo.direccion === 'saliente' ? '↩ ' : ''}${escapeHtml(ultimo.mensaje || '')}</div>`;
+    const pendiente = ultimo.direccion === 'entrante';
+    const badge = pendiente
+      ? '<span class="badge badge-pendiente">Pendiente</span>'
+      : '<span class="badge badge-respondido">Respondido</span>';
+    div.innerHTML = `<div class="nombre">${c.nombre}${badge}</div><div class="telefono">${tel}</div><div class="preview">${ultimo.direccion === 'saliente' ? '↩ ' : ''}${escapeHtml(ultimo.mensaje || '')}</div>`;
     div.onclick = () => { telefonoActivo = tel; pintarLista(); pintarHilo(tel); };
     lista.appendChild(div);
   }
