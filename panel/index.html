@@ -302,10 +302,15 @@ function pintarHilo(tel) {
     b.className = 'burbuja ' + m.direccion;
     const horaHtml = `<div class="hora">${new Date(m.creado_en).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</div>`;
     const fotoMatch = (m.mensaje || '').match(/\[FOTO_ID:([^\]]+)\]/);
+    const audioMatch = (m.mensaje || '').match(/\[AUDIO_ID:([^\]]+)\]/);
     if (fotoMatch) {
       const textoSinMarca = m.mensaje.replace(/\s*\[FOTO_ID:[^\]]+\]/, '');
       b.innerHTML = `${escapeHtml(textoSinMarca)}<div class="foto-cargando">Cargando foto...</div>${horaHtml}`;
       cargarFotoAutenticada(fotoMatch[1], b.querySelector('.foto-cargando'));
+    } else if (audioMatch) {
+      const textoSinMarca = m.mensaje.replace(/\s*\[AUDIO_ID:[^\]]+\]/, '');
+      b.innerHTML = `${escapeHtml(textoSinMarca)}<div class="audio-cargando">Cargando audio...</div>${horaHtml}`;
+      cargarAudioAutenticado(audioMatch[1], b.querySelector('.audio-cargando'));
     } else {
       b.innerHTML = `${escapeHtml(m.mensaje || '')}${horaHtml}`;
     }
@@ -360,6 +365,26 @@ async function cargarFotoAutenticada(fotoId, contenedor) {
     contenedor.replaceWith(img);
   } catch (e) {
     contenedor.textContent = 'No se pudo cargar la foto';
+  }
+}
+
+async function cargarAudioAutenticado(audioId, contenedor) {
+  if (!contenedor) return;
+  try {
+    const res = await fetch(WEBHOOK_FOTO + '?id=' + encodeURIComponent(audioId), {
+      headers: { Authorization: authHeader }
+    });
+    if (!res.ok) { contenedor.textContent = 'No se pudo cargar el audio'; return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = document.createElement('audio');
+    audio.src = url;
+    audio.controls = true;
+    audio.style.marginTop = '4px';
+    audio.style.maxWidth = '100%';
+    contenedor.replaceWith(audio);
+  } catch (e) {
+    contenedor.textContent = 'No se pudo cargar el audio';
   }
 }
 
