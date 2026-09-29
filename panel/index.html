@@ -179,6 +179,7 @@
 const WEBHOOK_MENSAJES = "https://q3uhvgat.rpcld.co/webhook/le-code-one-obtener-mensajes-lbl";
 const WEBHOOK_RESPONDER = "https://q3uhvgat.rpcld.co/webhook/le-code-one-enviar-mensaje-asesor-lbl";
 const WEBHOOK_ESTADOS = "https://q3uhvgat.rpcld.co/webhook/le-code-one-estados-pendientes-lbl";
+const WEBHOOK_FOTO = "https://q3uhvgat.rpcld.co/webhook/le-code-one-obtener-foto-lbl";
 
 let authHeader = sessionStorage.getItem('lbl_panel_auth') || '';
 
@@ -299,7 +300,15 @@ function pintarHilo(tel) {
   for (const m of c.mensajes) {
     const b = document.createElement('div');
     b.className = 'burbuja ' + m.direccion;
-    b.innerHTML = `${escapeHtml(m.mensaje || '')}<div class="hora">${new Date(m.creado_en).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</div>`;
+    const horaHtml = `<div class="hora">${new Date(m.creado_en).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</div>`;
+    const fotoMatch = (m.mensaje || '').match(/\[FOTO_ID:([^\]]+)\]/);
+    if (fotoMatch) {
+      const textoSinMarca = m.mensaje.replace(/\s*\[FOTO_ID:[^\]]+\]/, '');
+      b.innerHTML = `${escapeHtml(textoSinMarca)}<div class="foto-cargando">Cargando foto...</div>${horaHtml}`;
+      cargarFotoAutenticada(fotoMatch[1], b.querySelector('.foto-cargando'));
+    } else {
+      b.innerHTML = `${escapeHtml(m.mensaje || '')}${horaHtml}`;
+    }
     hilo.appendChild(b);
   }
   hilo.scrollTop = hilo.scrollHeight;
@@ -331,6 +340,27 @@ function pintarHilo(tel) {
     btn.disabled = false;
   };
   input.onkeydown = (e) => { if (e.key === 'Enter') btn.click(); };
+}
+
+async function cargarFotoAutenticada(fotoId, contenedor) {
+  if (!contenedor) return;
+  try {
+    const res = await fetch(WEBHOOK_FOTO + '?id=' + encodeURIComponent(fotoId), {
+      headers: { Authorization: authHeader }
+    });
+    if (!res.ok) { contenedor.textContent = 'No se pudo cargar la foto'; return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.maxWidth = '100%';
+    img.style.borderRadius = '0.6rem';
+    img.style.marginTop = '4px';
+    img.style.display = 'block';
+    contenedor.replaceWith(img);
+  } catch (e) {
+    contenedor.textContent = 'No se pudo cargar la foto';
+  }
 }
 
 function normalizarTelefono(tel) {
