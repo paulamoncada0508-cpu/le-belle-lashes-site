@@ -141,6 +141,30 @@
     padding: 0.4rem 0.6rem 0.4rem 0;
     cursor: pointer;
   }
+  #bot {
+    margin-left: auto;
+    flex-shrink: 0;
+    padding: 0.45rem 0.8rem;
+    border-radius: 1.25rem;
+    border: 1px solid #27ae60;
+    background: white;
+    color: #1b7a43;
+    font-weight: 600;
+    font-size: 0.85em;
+    cursor: pointer;
+  }
+  #bot.pausado {
+    border-color: #b58900;
+    background: #fff4d6;
+    color: #6b5200;
+  }
+  #bot:disabled { opacity: 0.6; cursor: not-allowed; }
+  .contacto .nota-pausa {
+    font-size: 0.78em;
+    color: #6b5200;
+    font-weight: 600;
+    margin-top: 2px;
+  }
   #cabecera-nombre { font-weight: 600; overflow-wrap: anywhere; }
   #cabecera-telefono { font-size: 0.8em; color: #777; }
   #hilo {
@@ -276,6 +300,8 @@ const WEBHOOK_MENSAJES = "https://q3uhvgat.rpcld.co/webhook/le-code-one-obtener-
 const WEBHOOK_RESPONDER = "https://q3uhvgat.rpcld.co/webhook/le-code-one-enviar-mensaje-asesor-lbl";
 const WEBHOOK_ESTADOS = "https://q3uhvgat.rpcld.co/webhook/le-code-one-estados-pendientes-lbl";
 const WEBHOOK_FOTO = "https://q3uhvgat.rpcld.co/webhook/le-code-one-obtener-foto-lbl";
+const WEBHOOK_VER_PAUSAS = "https://q3uhvgat.rpcld.co/webhook/le-code-one-ver-pausas-lbl";
+const WEBHOOK_CAMBIAR_PAUSA = "https://q3uhvgat.rpcld.co/webhook/le-code-one-cambiar-pausa-lbl";
 
 let authHeader = sessionStorage.getItem('lbl_panel_auth') || '';
 let contactos = {};
@@ -284,6 +310,10 @@ let pendientesEspeciales = {};
 let textoBusqueda = '';
 let firmaHilo = '';
 let intervalo = null;
+let pausados = new Set();
+// Si no se pudo leer la pausa, el panel no debe afirmar que el bot está activo
+let pausasConocidas = false;
+let cambiandoPausa = false;
 
 document.getElementById('loginBtn').onclick = async () => {
   const user = document.getElementById('loginUser').value;
@@ -373,8 +403,74 @@ async function cargar() {
     pendientesEspeciales = {};
   }
 
+  await cargarPausas();
+
   pintarLista();
   if (telefonoActivo && contactos[telefonoActivo]) pintarMensajes(telefonoActivo);
+}
+
+async function cargarPausas() {
+  try {
+    const res = await fetch(WEBHOOK_VER_PAUSAS, { headers: { Authorization: authHeader } });
+    if (!res.ok) throw new Error('sin datos');
+    const datos = await res.json();
+    pausados = new Set(datos.pausados.map((p) => claveContacto(p.telefono)));
+    pausasConocidas = true;
+  } catch (e) {
+    pausasConocidas = false;
+  }
+}
+
+// Los números se comparan sin indicativo; los IDs especiales (CO.xxxxx) se comparan completos
+function claveContacto(tel) {
+  return /[A-Za-z]/.test(tel || '') ? tel : normalizarTelefono(tel);
+}
+
+function actualizarBotonBot(tel) {
+  const b = document.getElementById('bot');
+  if (!b) return;
+  if (!pausasConocidas) {
+    b.textContent = 'Bot: sin datos';
+    b.className = '';
+    b.title = 'No se pudo consultar si el bot está pausado';
+    b.disabled = true;
+    return;
+  }
+  const pausado = pausados.has(claveContacto(tel));
+  b.textContent = pausado ? 'Bot pausado' : 'Bot activo';
+  b.className = pausado ? 'pausado' : '';
+  b.title = pausado ? 'Clic para reactivar el bot con esta clienta' : 'Clic para pausar el bot con esta clienta';
+  b.setAttribute('aria-pressed', pausado ? 'true' : 'false');
+  b.disabled = cambiandoPausa;
+}
+
+async function cambiarPausa(tel) {
+  if (cambiandoPausa || !pausasConocidas) return;
+  const pausar = !pausados.has(claveContacto(tel));
+  const estado = document.getElementById('estado');
+  cambiandoPausa = true;
+  actualizarBotonBot(tel);
+  estado.textContent = pausar ? 'Pausando el bot...' : 'Reactivando el bot...';
+  try {
+    const res = await fetch(WEBHOOK_CAMBIAR_PAUSA, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ telefono: tel, pausado: pausar })
+    });
+    if (!res.ok) throw new Error('sin cambio');
+    if (pausar) pausados.add(claveContacto(tel));
+    else pausados.delete(claveContacto(tel));
+    if (telefonoActivo === tel) {
+      estado.textContent = pausar
+        ? 'Bot pausado: no le responderá hasta que lo reactives.'
+        : 'Bot reactivado: volverá a responderle.';
+    }
+  } catch (e) {
+    if (telefonoActivo === tel) estado.textContent = 'No se pudo cambiar. El bot sigue como estaba.';
+  }
+  cambiandoPausa = false;
+  actualizarBotonBot(tel);
+  pintarLista();
 }
 
 function coincideBusqueda(tel, c) {
@@ -416,11 +512,15 @@ function pintarLista() {
     const notaEspecial = (!pendiente && especial)
       ? `<div class="nota-especial">⏳ ${escapeHtml(especial.join(' · '))}</div>`
       : '';
+    const notaPausa = pausasConocidas && pausados.has(claveContacto(tel))
+      ? '<div class="nota-pausa">Bot pausado</div>'
+      : '';
     div.innerHTML = `
       <div class="info-contacto">
         <div class="nombre">${escapeHtml(c.nombre)}</div>
         <div class="telefono">${escapeHtml(tel)}</div>
         <div class="preview">${ultimo.direccion === 'saliente' ? '↩ ' : ''}${escapeHtml(textoVisible(ultimo.mensaje))}</div>
+        ${notaPausa}
         ${notaEspecial}
       </div>
       ${badge}
@@ -465,6 +565,7 @@ function construirChat(tel) {
         <div id="cabecera-nombre">${escapeHtml(c.nombre)}</div>
         <div id="cabecera-telefono">${escapeHtml(tel)}</div>
       </div>
+      <button id="bot" type="button"></button>
     </div>
     <div id="hilo"></div>
     <div id="pie-chat">
@@ -476,6 +577,8 @@ function construirChat(tel) {
     </div>
   `;
   document.getElementById('volver').onclick = () => history.back();
+  document.getElementById('bot').onclick = () => cambiarPausa(tel);
+  actualizarBotonBot(tel);
 
   const btn = document.getElementById('enviar');
   const input = document.getElementById('texto');
@@ -515,6 +618,7 @@ function pintarMensajes(tel) {
   if (!hilo) return;
   const c = contactos[tel];
   document.getElementById('cabecera-nombre').textContent = c.nombre;
+  actualizarBotonBot(tel);
   const firma = c.mensajes.map((m) => `${m.id ?? ''}|${m.creado_en}|${m.direccion}|${m.mensaje ?? ''}`).join('\n');
   if (firma === firmaHilo) return;
   const primeraVez = firmaHilo === '';
