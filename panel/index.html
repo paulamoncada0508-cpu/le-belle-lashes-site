@@ -12,11 +12,15 @@
   }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    margin: 0;
+    margin: 0 auto;
     background: #f5f0eb;
     color: #3a2f2a;
     max-width: 1400px;
-    margin: 0 auto;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
   header {
     background: #d98ca0;
@@ -24,17 +28,44 @@
     padding: 1rem 1.25rem;
     font-size: 1.3rem;
     font-weight: 600;
+    flex-shrink: 0;
   }
   #app {
     display: flex;
-    height: calc(100vh - 4rem);
+    flex: 1;
+    min-height: 0;
   }
   #lista {
     width: 20rem;
     flex-shrink: 0;
     background: white;
     border-right: 1px solid #eadfd6;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #buscador-caja {
+    padding: 0.65rem;
+    border-bottom: 1px solid #eadfd6;
+    flex-shrink: 0;
+  }
+  #buscador {
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #ddd;
+    border-radius: 1.25rem;
+    font-size: 16px;
+  }
+  #contactos {
+    flex: 1;
     overflow-y: auto;
+    min-height: 0;
+  }
+  #sin-resultados {
+    padding: 1.25rem;
+    color: #999;
+    text-align: center;
+    font-size: 0.9em;
   }
   .contacto {
     padding: 0.9rem 1rem;
@@ -55,10 +86,11 @@
   .contacto .nombre {
     font-weight: 600;
     font-size: 0.95em;
+    overflow-wrap: anywhere;
   }
   .contacto .telefono {
     font-size: 0.8em;
-    color: #999;
+    color: #777;
   }
   .contacto .preview {
     font-size: 0.85em;
@@ -75,36 +107,56 @@
     height: 0.7rem;
     border-radius: 50%;
   }
-  .badge-pendiente {
-    background: #c0392b;
-  }
-  .badge-respondido {
-    background: #27ae60;
-  }
-  .badge-especial {
-    background: #f1c40f;
-  }
+  .badge-pendiente { background: #c0392b; }
+  .badge-respondido { background: #27ae60; }
+  .badge-especial { background: #f1c40f; }
   .contacto .nota-especial {
     font-size: 0.78em;
-    color: #a67c00;
+    color: #8a6700;
     margin-top: 2px;
   }
   #conversacion {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    min-height: 0;
   }
+  #cabecera-chat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.9rem;
+    background: white;
+    border-bottom: 1px solid #eadfd6;
+    flex-shrink: 0;
+  }
+  #volver {
+    display: none;
+    background: none;
+    border: none;
+    color: #a85a70;
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 0.4rem 0.6rem 0.4rem 0;
+    cursor: pointer;
+  }
+  #cabecera-nombre { font-weight: 600; overflow-wrap: anywhere; }
+  #cabecera-telefono { font-size: 0.8em; color: #777; }
   #hilo {
     flex: 1;
     overflow-y: auto;
     padding: 1.25rem;
+    min-height: 0;
   }
   .burbuja {
     max-width: 60%;
+    width: fit-content;
     padding: 0.65rem 0.9rem;
     border-radius: 0.9rem;
     margin-bottom: 0.65rem;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
     font-size: 0.95em;
     line-height: 1.4;
   }
@@ -114,37 +166,48 @@
     margin-right: auto;
   }
   .saliente {
-    background: #d98ca0;
+    background: #a85a70;
     color: white;
     margin-left: auto;
   }
+  .automatico {
+    font-size: 0.72em;
+    font-weight: 600;
+    opacity: 0.85;
+    margin-bottom: 3px;
+  }
   .hora {
     font-size: 0.7em;
-    opacity: 0.6;
+    opacity: 0.75;
     margin-top: 4px;
+  }
+  #pie-chat {
+    background: white;
+    border-top: 1px solid #eadfd6;
+    flex-shrink: 0;
   }
   #responder {
     display: flex;
-    padding: 0.9rem;
-    background: white;
-    border-top: 1px solid #eadfd6;
+    padding: 0.9rem 0.9rem 0.25rem;
   }
   #texto {
     flex: 1;
+    min-width: 0;
     padding: 0.65rem 0.9rem;
     border: 1px solid #ddd;
     border-radius: 1.25rem;
-    font-size: 0.95em;
+    font-size: 16px;
   }
   #enviar {
     margin-left: 0.65rem;
     padding: 0.65rem 1.25rem;
-    background: #d98ca0;
+    background: #a85a70;
     color: white;
     border: none;
     border-radius: 1.25rem;
     cursor: pointer;
     font-weight: 600;
+    font-size: 1rem;
   }
   #enviar:disabled { opacity: 0.5; cursor: not-allowed; }
   #vacio {
@@ -152,24 +215,57 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #999;
+    color: #777;
   }
-  #estado { font-size: 0.8em; margin-top: 6px; min-height: 16px; }
+  #estado {
+    font-size: 0.8em;
+    min-height: 1.5rem;
+    padding: 0.25rem 1rem 0.4rem;
+  }
+  #sin-conexion {
+    display: none;
+    background: #fff4d6;
+    color: #6b5200;
+    font-size: 0.85em;
+    padding: 0.4rem 1rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  /* Celular: una sola columna; la lista y el chat se turnan la pantalla */
+  @media (max-width: 760px) {
+    header { padding: 0.75rem 1rem; font-size: 1.1rem; }
+    #lista { width: 100%; border-right: none; }
+    #conversacion { display: none; }
+    #app.ver-chat #lista { display: none; }
+    #app.ver-chat #conversacion { display: flex; }
+    #volver { display: block; }
+    #hilo { padding: 0.9rem; }
+    .burbuja { max-width: 85%; }
+    #responder { padding: 0.65rem 0.65rem 0.25rem; }
+    #enviar { padding: 0.65rem 1rem; }
+  }
 </style>
 </head>
 <body>
 <header>🌸 Le Belle Lashes — Conversaciones</header>
+<div id="sin-conexion">Sin conexión. Mostrando la última información recibida.</div>
 
-<div id="login" style="max-width:20rem;margin:4rem auto;background:white;padding:1.5rem;border-radius:0.75rem;box-shadow:0 2px 10px rgba(0,0,0,0.08);font-size:1rem;">
+<div id="login" style="max-width:20rem;width:calc(100% - 2rem);margin:4rem auto;background:white;padding:1.5rem;border-radius:0.75rem;box-shadow:0 2px 10px rgba(0,0,0,0.08);font-size:1rem;">
   <div style="font-weight:600;margin-bottom:0.9rem;">Entrar al panel</div>
-  <input id="loginUser" type="text" placeholder="Usuario" style="width:100%;padding:0.65rem;margin-bottom:0.65rem;border:1px solid #ddd;border-radius:0.5rem;box-sizing:border-box;font-size:1rem;" autocapitalize="off" autocorrect="off">
-  <input id="loginPass" type="password" placeholder="Contraseña" style="width:100%;padding:0.65rem;margin-bottom:0.65rem;border:1px solid #ddd;border-radius:0.5rem;box-sizing:border-box;font-size:1rem;">
-  <button id="loginBtn" style="width:100%;padding:0.65rem;background:#d98ca0;color:white;border:none;border-radius:0.5rem;font-weight:600;cursor:pointer;font-size:1rem;">Entrar</button>
+  <input id="loginUser" type="text" placeholder="Usuario" aria-label="Usuario" style="width:100%;padding:0.65rem;margin-bottom:0.65rem;border:1px solid #ddd;border-radius:0.5rem;font-size:16px;" autocapitalize="off" autocorrect="off">
+  <input id="loginPass" type="password" placeholder="Contraseña" aria-label="Contraseña" style="width:100%;padding:0.65rem;margin-bottom:0.65rem;border:1px solid #ddd;border-radius:0.5rem;font-size:16px;">
+  <button id="loginBtn" style="width:100%;padding:0.65rem;background:#a85a70;color:white;border:none;border-radius:0.5rem;font-weight:600;cursor:pointer;font-size:1rem;">Entrar</button>
   <div id="loginError" style="color:#c0392b;font-size:0.85em;margin-top:0.5rem;"></div>
 </div>
 
 <div id="app" style="display:none;">
-  <div id="lista"></div>
+  <div id="lista">
+    <div id="buscador-caja">
+      <input id="buscador" type="search" placeholder="Buscar nombre, número o mensaje" aria-label="Buscar conversación">
+    </div>
+    <div id="contactos"></div>
+  </div>
   <div id="conversacion">
     <div id="vacio">Selecciona una conversación</div>
   </div>
@@ -182,46 +278,80 @@ const WEBHOOK_ESTADOS = "https://q3uhvgat.rpcld.co/webhook/le-code-one-estados-p
 const WEBHOOK_FOTO = "https://q3uhvgat.rpcld.co/webhook/le-code-one-obtener-foto-lbl";
 
 let authHeader = sessionStorage.getItem('lbl_panel_auth') || '';
+let contactos = {};
+let telefonoActivo = null;
+let pendientesEspeciales = {};
+let textoBusqueda = '';
+let firmaHilo = '';
+let intervalo = null;
 
 document.getElementById('loginBtn').onclick = async () => {
   const user = document.getElementById('loginUser').value;
   const pass = document.getElementById('loginPass').value;
   const intento = 'Basic ' + btoa(user + ':' + pass);
-  document.getElementById('loginError').textContent = 'Entrando...';
-  const res = await fetch(WEBHOOK_MENSAJES, { headers: { Authorization: intento } });
-  if (res.ok) {
-    authHeader = intento;
-    sessionStorage.setItem('lbl_panel_auth', authHeader);
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    iniciar();
-  } else {
-    document.getElementById('loginError').textContent = 'Usuario o contraseña incorrectos.';
+  const error = document.getElementById('loginError');
+  error.textContent = 'Entrando...';
+  try {
+    const res = await fetch(WEBHOOK_MENSAJES, { headers: { Authorization: intento } });
+    if (res.ok) {
+      authHeader = intento;
+      sessionStorage.setItem('lbl_panel_auth', authHeader);
+      document.getElementById('loginPass').value = '';
+      error.textContent = '';
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      iniciar();
+    } else if (res.status === 401 || res.status === 403) {
+      error.textContent = 'Usuario o contraseña incorrectos.';
+    } else {
+      error.textContent = 'El sistema no respondió bien. Intenta de nuevo en un momento.';
+    }
+  } catch (e) {
+    error.textContent = 'No hay conexión. Revisa tu internet e intenta de nuevo.';
   }
 };
 document.getElementById('loginPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
 
-if (authHeader) {
-  document.getElementById('login').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  iniciar();
+document.getElementById('buscador').addEventListener('input', (e) => {
+  textoBusqueda = e.target.value;
+  pintarLista();
+});
+
+// El botón "atrás" del celular vuelve a la lista en vez de salir del panel
+window.addEventListener('popstate', () => { cerrarChat(); });
+
+function avisoConexion(hayProblema) {
+  document.getElementById('sin-conexion').style.display = hayProblema ? 'block' : 'none';
 }
 
-let contactos = {};
-let telefonoActivo = null;
-let pendientesEspeciales = {};
+function cerrarSesion() {
+  clearInterval(intervalo);
+  intervalo = null;
+  authHeader = '';
+  sessionStorage.removeItem('lbl_panel_auth');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login').style.display = 'block';
+  document.getElementById('loginError').textContent = 'Sesión vencida, entra de nuevo.';
+}
 
 async function cargar() {
-  const res = await fetch(WEBHOOK_MENSAJES, {
-    headers: { Authorization: authHeader }
-  });
-  if (!res.ok) {
-    sessionStorage.removeItem('lbl_panel_auth');
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('login').style.display = 'block';
-    document.getElementById('loginError').textContent = 'Sesión vencida, entra de nuevo.';
+  let res;
+  try {
+    res = await fetch(WEBHOOK_MENSAJES, { headers: { Authorization: authHeader } });
+  } catch (e) {
+    avisoConexion(true);
     return;
   }
+  if (res.status === 401 || res.status === 403) {
+    cerrarSesion();
+    return;
+  }
+  if (!res.ok) {
+    // un fallo temporal del servidor no debe sacarte del panel
+    avisoConexion(true);
+    return;
+  }
+  avisoConexion(false);
   const rows = await res.json();
   contactos = {};
   for (const r of rows) {
@@ -244,17 +374,34 @@ async function cargar() {
   }
 
   pintarLista();
-  if (telefonoActivo) pintarHilo(telefonoActivo);
+  if (telefonoActivo && contactos[telefonoActivo]) pintarMensajes(telefonoActivo);
+}
+
+function coincideBusqueda(tel, c) {
+  const q = textoBusqueda.trim().toLowerCase();
+  if (!q) return true;
+  if ((c.nombre || '').toLowerCase().includes(q)) return true;
+  const digitos = q.replace(/\D/g, '');
+  if (digitos && tel.replace(/\D/g, '').includes(digitos)) return true;
+  if (tel.toLowerCase().includes(q)) return true;
+  return c.mensajes.some((m) => (m.mensaje || '').toLowerCase().includes(q));
 }
 
 function pintarLista() {
-  const lista = document.getElementById('lista');
+  const lista = document.getElementById('contactos');
+  const posicion = lista.scrollTop;
   lista.innerHTML = '';
-  const telefonos = Object.keys(contactos).sort((a, b) => {
-    const ua = contactos[a].mensajes.at(-1).creado_en;
-    const ub = contactos[b].mensajes.at(-1).creado_en;
-    return ub.localeCompare(ua);
-  });
+  const telefonos = Object.keys(contactos)
+    .filter((tel) => coincideBusqueda(tel, contactos[tel]))
+    .sort((a, b) => {
+      const ua = contactos[a].mensajes.at(-1).creado_en;
+      const ub = contactos[b].mensajes.at(-1).creado_en;
+      return ub.localeCompare(ua);
+    });
+  if (telefonos.length === 0) {
+    lista.innerHTML = `<div id="sin-resultados">${textoBusqueda.trim() ? 'No hay conversaciones con esa búsqueda.' : 'Todavía no hay conversaciones.'}</div>`;
+    return;
+  }
   for (const tel of telefonos) {
     const c = contactos[tel];
     const ultimo = c.mensajes.at(-1);
@@ -273,57 +420,69 @@ function pintarLista() {
       <div class="info-contacto">
         <div class="nombre">${escapeHtml(c.nombre)}</div>
         <div class="telefono">${escapeHtml(tel)}</div>
-        <div class="preview">${ultimo.direccion === 'saliente' ? '↩ ' : ''}${escapeHtml(ultimo.mensaje || '')}</div>
+        <div class="preview">${ultimo.direccion === 'saliente' ? '↩ ' : ''}${escapeHtml(textoVisible(ultimo.mensaje))}</div>
         ${notaEspecial}
       </div>
       ${badge}
     `;
-    div.onclick = () => { telefonoActivo = tel; pintarLista(); pintarHilo(tel); };
+    div.onclick = () => abrirChat(tel);
     lista.appendChild(div);
   }
+  lista.scrollTop = posicion;
 }
 
-function pintarHilo(tel) {
+function textoVisible(mensaje) {
+  return (mensaje || '').replace(/\s*\[(FOTO_ID|AUDIO_ID):[^\]]+\]/g, '').trim() || '📎 Archivo';
+}
+
+function abrirChat(tel) {
+  const yaEnChat = document.getElementById('app').classList.contains('ver-chat');
+  telefonoActivo = tel;
+  firmaHilo = '';
+  document.getElementById('app').classList.add('ver-chat');
+  if (!yaEnChat) history.pushState({ chat: true }, '');
+  pintarLista();
+  construirChat(tel);
+  pintarMensajes(tel);
+}
+
+function cerrarChat() {
+  telefonoActivo = null;
+  firmaHilo = '';
+  document.getElementById('app').classList.remove('ver-chat');
+  document.getElementById('conversacion').innerHTML = '<div id="vacio">Selecciona una conversación</div>';
+  pintarLista();
+}
+
+// La caja de texto se crea una sola vez por chat: refrescar no borra lo que escribes
+function construirChat(tel) {
   const cont = document.getElementById('conversacion');
   const c = contactos[tel];
   cont.innerHTML = `
+    <div id="cabecera-chat">
+      <button id="volver" aria-label="Volver a la lista">←</button>
+      <div style="min-width:0;">
+        <div id="cabecera-nombre">${escapeHtml(c.nombre)}</div>
+        <div id="cabecera-telefono">${escapeHtml(tel)}</div>
+      </div>
+    </div>
     <div id="hilo"></div>
-    <div>
+    <div id="pie-chat">
       <div id="responder">
-        <input id="texto" type="text" placeholder="Escribe una respuesta..." />
+        <input id="texto" type="text" placeholder="Escribe una respuesta..." aria-label="Escribe una respuesta" />
         <button id="enviar">Enviar</button>
       </div>
-      <div id="estado" style="padding-left:14px;"></div>
+      <div id="estado"></div>
     </div>
   `;
-  const hilo = document.getElementById('hilo');
-  for (const m of c.mensajes) {
-    const b = document.createElement('div');
-    b.className = 'burbuja ' + m.direccion;
-    const horaHtml = `<div class="hora">${new Date(m.creado_en).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</div>`;
-    const fotoMatch = (m.mensaje || '').match(/\[FOTO_ID:([^\]]+)\]/);
-    const audioMatch = (m.mensaje || '').match(/\[AUDIO_ID:([^\]]+)\]/);
-    if (fotoMatch) {
-      const textoSinMarca = m.mensaje.replace(/\s*\[FOTO_ID:[^\]]+\]/, '');
-      b.innerHTML = `${escapeHtml(textoSinMarca)}<div class="foto-cargando">Cargando foto...</div>${horaHtml}`;
-      cargarFotoAutenticada(fotoMatch[1], b.querySelector('.foto-cargando'));
-    } else if (audioMatch) {
-      const textoSinMarca = m.mensaje.replace(/\s*\[AUDIO_ID:[^\]]+\]/, '');
-      b.innerHTML = `${escapeHtml(textoSinMarca)}<div class="audio-cargando">Cargando audio...</div>${horaHtml}`;
-      cargarAudioAutenticado(audioMatch[1], b.querySelector('.audio-cargando'));
-    } else {
-      b.innerHTML = `${escapeHtml(m.mensaje || '')}${horaHtml}`;
-    }
-    hilo.appendChild(b);
-  }
-  hilo.scrollTop = hilo.scrollHeight;
+  document.getElementById('volver').onclick = () => history.back();
 
   const btn = document.getElementById('enviar');
   const input = document.getElementById('texto');
   const estado = document.getElementById('estado');
   btn.onclick = async () => {
     const texto = input.value.trim();
-    if (!texto) return;
+    if (!texto || btn.disabled) return;
     btn.disabled = true;
     estado.textContent = 'Enviando...';
     try {
@@ -336,15 +495,54 @@ function pintarHilo(tel) {
         estado.textContent = 'Enviado ✓';
         input.value = '';
         setTimeout(cargar, 1500);
+      } else if (res.status === 401 || res.status === 403) {
+        estado.textContent = 'Tu sesión venció. Tu mensaje no se envió.';
       } else {
-        estado.textContent = 'Error al enviar';
+        // el texto se conserva para poder reintentar
+        estado.textContent = 'Error al enviar. Tu mensaje sigue en la caja.';
       }
     } catch (e) {
-      estado.textContent = 'Error de conexión';
+      estado.textContent = 'Error de conexión. Tu mensaje sigue en la caja.';
     }
     btn.disabled = false;
   };
   input.onkeydown = (e) => { if (e.key === 'Enter') btn.click(); };
+}
+
+// Solo se redibuja si cambió algo, así no saltas de lugar ni recargas fotos y audios
+function pintarMensajes(tel) {
+  const hilo = document.getElementById('hilo');
+  if (!hilo) return;
+  const c = contactos[tel];
+  document.getElementById('cabecera-nombre').textContent = c.nombre;
+  const firma = c.mensajes.map((m) => `${m.id ?? ''}|${m.creado_en}|${m.direccion}|${m.mensaje ?? ''}`).join('\n');
+  if (firma === firmaHilo) return;
+  const primeraVez = firmaHilo === '';
+  const estabaAbajo = hilo.scrollHeight - hilo.scrollTop - hilo.clientHeight < 80;
+  const posicion = hilo.scrollTop;
+  firmaHilo = firma;
+  hilo.innerHTML = '';
+  for (const m of c.mensajes) {
+    const b = document.createElement('div');
+    b.className = 'burbuja ' + (m.direccion === 'saliente' ? 'saliente' : 'entrante');
+    const marcaAuto = m.es_seguimiento_automatico === true ? '<div class="automatico">Seguimiento automático</div>' : '';
+    const horaHtml = `<div class="hora">${new Date(m.creado_en).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</div>`;
+    const fotoMatch = (m.mensaje || '').match(/\[FOTO_ID:([^\]]+)\]/);
+    const audioMatch = (m.mensaje || '').match(/\[AUDIO_ID:([^\]]+)\]/);
+    if (fotoMatch) {
+      const textoSinMarca = m.mensaje.replace(/\s*\[FOTO_ID:[^\]]+\]/, '');
+      b.innerHTML = `${marcaAuto}${escapeHtml(textoSinMarca)}<div class="foto-cargando">Cargando foto...</div>${horaHtml}`;
+      cargarFotoAutenticada(fotoMatch[1], b.querySelector('.foto-cargando'));
+    } else if (audioMatch) {
+      const textoSinMarca = m.mensaje.replace(/\s*\[AUDIO_ID:[^\]]+\]/, '');
+      b.innerHTML = `${marcaAuto}${escapeHtml(textoSinMarca)}<div class="audio-cargando">Cargando audio...</div>${horaHtml}`;
+      cargarAudioAutenticado(audioMatch[1], b.querySelector('.audio-cargando'));
+    } else {
+      b.innerHTML = `${marcaAuto}${escapeHtml(m.mensaje || '')}${horaHtml}`;
+    }
+    hilo.appendChild(b);
+  }
+  hilo.scrollTop = (primeraVez || estabaAbajo) ? hilo.scrollHeight : posicion;
 }
 
 async function cargarFotoAutenticada(fotoId, contenedor) {
@@ -358,6 +556,7 @@ async function cargarFotoAutenticada(fotoId, contenedor) {
     const url = URL.createObjectURL(blob);
     const img = document.createElement('img');
     img.src = url;
+    img.alt = 'Foto enviada por la clienta';
     img.style.maxWidth = '100%';
     img.style.borderRadius = '0.6rem';
     img.style.marginTop = '4px';
@@ -396,12 +595,18 @@ function normalizarTelefono(tel) {
 function escapeHtml(s) {
   const div = document.createElement('div');
   div.textContent = s;
-  return div.innerHTML;
+  return div.innerHTML.replace(/"/g, '&quot;');
 }
 
 function iniciar() {
   cargar();
-  setInterval(cargar, 15000);
+  if (!intervalo) intervalo = setInterval(cargar, 15000);
+}
+
+if (authHeader) {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  iniciar();
 }
 </script>
 </body>
