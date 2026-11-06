@@ -271,8 +271,8 @@ function pintarLista() {
       : '';
     div.innerHTML = `
       <div class="info-contacto">
-        <div class="nombre">${c.nombre}</div>
-        <div class="telefono">${tel}</div>
+        <div class="nombre">${escapeHtml(c.nombre)}</div>
+        <div class="telefono">${escapeHtml(tel)}</div>
         <div class="preview">${ultimo.direccion === 'saliente' ? '↩ ' : ''}${escapeHtml(ultimo.mensaje || '')}</div>
         ${notaEspecial}
       </div>
