@@ -256,6 +256,86 @@
     flex-shrink: 0;
   }
 
+  #ficha-btn {
+    flex-shrink: 0;
+    padding: 0.45rem 0.8rem;
+    border-radius: 1.25rem;
+    border: 1px solid #a85a70;
+    background: white;
+    color: #a85a70;
+    font-weight: 600;
+    font-size: 0.85em;
+    cursor: pointer;
+  }
+  #ficha-btn[aria-expanded="true"] { background: #a85a70; color: white; }
+  #ficha {
+    flex-shrink: 0;
+    max-height: 55%;
+    overflow-y: auto;
+    background: #fdfaf7;
+    border-bottom: 1px solid #eadfd6;
+    padding: 0.75rem 1rem;
+  }
+  .ficha-titulo { font-weight: 600; font-size: 0.85em; margin: 0.25rem 0 0.4rem; }
+  .ficha-titulo.segundo { margin-top: 0.9rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 3px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1rem 0.5rem;
+    border: 1px solid #c9b9ad;
+    border-radius: 1rem;
+    background: white;
+    font-size: 0.75em;
+    overflow-wrap: anywhere;
+  }
+  .chip-quitar {
+    background: none;
+    border: none;
+    color: #9c2b20;
+    font-size: 1.1em;
+    line-height: 1;
+    padding: 0.2rem 0.3rem;
+    cursor: pointer;
+  }
+  .sin-datos { font-size: 0.8em; color: #6b5d55; }
+  .form-ficha { display: flex; gap: 0.4rem; margin-top: 0.5rem; align-items: flex-start; }
+  .form-ficha input, .form-ficha textarea {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid #ddd;
+    border-radius: 0.5rem;
+    font-size: 16px;
+    font-family: inherit;
+    resize: vertical;
+  }
+  .form-ficha button {
+    padding: 0.5rem 0.75rem;
+    background: #a85a70;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .form-ficha button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .nota {
+    background: white;
+    border: 1px solid #eadfd6;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.65rem;
+    margin-top: 0.5rem;
+    font-size: 0.88em;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .nota-fecha { font-size: 0.78em; color: #6b5d55; margin-top: 3px; }
+  #ficha-estado { font-size: 0.8em; min-height: 1.2rem; margin-top: 0.4rem; color: #6b5d55; }
+  #ficha-estado.error { color: #9c2b20; }
+
   #pestanas {
     display: none;
     background: white;
@@ -434,6 +514,7 @@ const WEBHOOK_VER_PAUSAS = "https://q3uhvgat.rpcld.co/webhook/le-code-one-ver-pa
 const WEBHOOK_CAMBIAR_PAUSA = "https://q3uhvgat.rpcld.co/webhook/le-code-one-cambiar-pausa-lbl";
 const WEBHOOK_VER_EMBUDO = "https://q3uhvgat.rpcld.co/webhook/le-code-one-ver-embudo-lbl";
 const WEBHOOK_MOVER_ETAPA = "https://q3uhvgat.rpcld.co/webhook/le-code-one-mover-etapa-lbl";
+const WEBHOOK_FICHA = "https://q3uhvgat.rpcld.co/webhook/le-code-one-ficha-lbl";
 // Señales de interés: la clienta pregunta por servicios, precios o disponibilidad
 const SENAL_INTERES = /precio|cu[aá]nto|cuesta|valor|\bsets?\b|\b[1-6]d\b|agend|\bcita\b|disponib|horario|promo|domicilio|pesta[nñ]/i;
 
@@ -455,6 +536,8 @@ let contactosConCita = new Set();
 let embudoConError = false;
 let telefonoArrastrado = null;
 let firmaEmbudo = '';
+let etiquetasDisponibles = [];
+let etiquetasPorContacto = new Map();
 
 document.getElementById('pestana-conversaciones').onclick = () => activarVista('conversaciones');
 document.getElementById('pestana-embudo').onclick = () => activarVista('embudo');
@@ -549,10 +632,119 @@ async function cargar() {
   }
 
   await cargarPausas();
+  await cargarEtiquetas();
 
   pintarLista();
   if (telefonoActivo && contactos[telefonoActivo]) pintarMensajes(telefonoActivo);
   if (vistaActual === 'embudo') await cargarEmbudo();
+}
+
+async function llamarFicha(cuerpo) {
+  const res = await fetch(WEBHOOK_FICHA, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+    body: JSON.stringify(cuerpo)
+  });
+  if (!res.ok) throw new Error('sin cambio');
+  return res.json();
+}
+
+async function cargarEtiquetas() {
+  try {
+    const datos = await llamarFicha({ accion: 'resumen' });
+    etiquetasDisponibles = datos.etiquetas;
+    etiquetasPorContacto = new Map(datos.asignadas.map((a) => [claveContacto(a.telefono), a.etiquetas]));
+  } catch (e) {
+    // Sin este dato el panel sigue funcionando con lo último que recibió
+  }
+}
+
+function etiquetasDe(tel) {
+  return etiquetasPorContacto.get(claveContacto(tel)) || [];
+}
+
+function chipsDe(tel) {
+  const lista = etiquetasDe(tel);
+  if (lista.length === 0) return '';
+  return `<div class="chips">${lista.map((n) => `<span class="chip">${escapeHtml(n)}</span>`).join('')}</div>`;
+}
+
+function pintarFicha(tel, datos) {
+  const zonaEtiquetas = document.getElementById('ficha-etiquetas');
+  const zonaNotas = document.getElementById('ficha-notas');
+  if (!zonaEtiquetas || telefonoActivo !== tel) return;
+  zonaEtiquetas.innerHTML = datos.etiquetas.length
+    ? `<div class="chips">${datos.etiquetas.map((n) => `<span class="chip">${escapeHtml(n)}<button class="chip-quitar" type="button" aria-label="Quitar etiqueta ${escapeHtml(n)}" data-etiqueta="${escapeHtml(n)}">×</button></span>`).join('')}</div>`
+    : '<div class="sin-datos">Sin etiquetas.</div>';
+  zonaEtiquetas.querySelectorAll('.chip-quitar').forEach((b) => {
+    b.onclick = () => accionFicha(tel, { accion: 'quitar_etiqueta', valor: b.dataset.etiqueta });
+  });
+  zonaNotas.innerHTML = datos.notas.length
+    ? datos.notas.map((n) => `<div class="nota">${escapeHtml(n.texto)}<div class="nota-fecha">${new Date(n.creado_at).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</div></div>`).join('')
+    : '<div class="sin-datos">Sin notas.</div>';
+  document.getElementById('lista-etiquetas').innerHTML = etiquetasDisponibles
+    .filter((e) => !datos.etiquetas.includes(e.nombre))
+    .map((e) => `<option value="${escapeHtml(e.nombre)}"></option>`).join('');
+}
+
+async function abrirFicha(tel) {
+  const ficha = document.getElementById('ficha');
+  const boton = document.getElementById('ficha-btn');
+  const abrir = ficha.hidden;
+  ficha.hidden = !abrir;
+  boton.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  if (!abrir) return;
+  const estado = document.getElementById('ficha-estado');
+  estado.className = '';
+  estado.textContent = 'Cargando...';
+  try {
+    const datos = await llamarFicha({ accion: 'ver', telefono: tel });
+    if (telefonoActivo !== tel) return;
+    pintarFicha(tel, datos);
+    estado.textContent = '';
+  } catch (e) {
+    if (telefonoActivo !== tel) return;
+    estado.className = 'error';
+    estado.textContent = 'No se pudo cargar la ficha. Cierra y abre de nuevo.';
+  }
+}
+
+// Devuelve true si se guardó, para que el formulario sepa si puede limpiar el texto
+async function accionFicha(tel, datos) {
+  const estado = document.getElementById('ficha-estado');
+  const nombre = contactos[tel].nombre === tel ? '' : contactos[tel].nombre;
+  estado.className = '';
+  estado.textContent = 'Guardando...';
+  try {
+    const r = await llamarFicha({ ...datos, telefono: tel, nombre });
+    etiquetasPorContacto.set(claveContacto(tel), r.etiquetas);
+    if (datos.accion === 'poner_etiqueta') await cargarEtiquetas();
+    pintarFicha(tel, r);
+    pintarLista();
+    if (telefonoActivo === tel) estado.textContent = 'Guardado ✓';
+    return true;
+  } catch (e) {
+    if (telefonoActivo === tel) {
+      estado.className = 'error';
+      estado.textContent = 'No se pudo guardar. Tu texto sigue en la caja.';
+    }
+    return false;
+  }
+}
+
+function conectarFormulario(formId, campoId, accion, tel) {
+  const form = document.getElementById(formId);
+  const campo = document.getElementById(campoId);
+  const boton = form.querySelector('button');
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const valor = campo.value.trim();
+    if (!valor || boton.disabled) return;
+    boton.disabled = true;
+    const guardado = await accionFicha(tel, { accion, valor });
+    boton.disabled = false;
+    if (guardado) campo.value = '';
+  };
 }
 
 function mostrarPanel() {
@@ -630,7 +822,7 @@ function pintarEmbudo() {
   const telefonos = Object.keys(contactos).sort((a, b) => contactos[b].mensajes.at(-1).creado_en.localeCompare(contactos[a].mensajes.at(-1).creado_en));
   for (const tel of telefonos) grupos.get(etapaDe(tel, contactos[tel])).push(tel);
 
-  const firma = JSON.stringify([...grupos].map(([n, t]) => [n, t.map((x) => [x, contactos[x].nombre, contactos[x].mensajes.at(-1).creado_en])]));
+  const firma = JSON.stringify([...grupos].map(([n, t]) => [n, t.map((x) => [x, contactos[x].nombre, contactos[x].mensajes.at(-1).creado_en, etiquetasDe(x)])]));
   if (firma === firmaEmbudo) return;
   firmaEmbudo = firma;
   const posicion = tablero.scrollLeft;
@@ -679,6 +871,7 @@ function crearTarjeta(tel, etapaActual) {
     <button class="tarjeta-nombre" type="button">${escapeHtml(c.nombre)}</button>
     <div class="tarjeta-telefono">${escapeHtml(tel)}</div>
     <div class="tarjeta-preview">${escapeHtml(textoVisible(c.mensajes.at(-1).mensaje))}</div>
+    ${chipsDe(tel)}
     <div class="tarjeta-pie">
       <select class="tarjeta-mover" aria-label="Cambiar etapa">${opciones}</select>
       ${guardada ? '<span class="tarjeta-marca">A mano</span>' : ''}
@@ -804,6 +997,7 @@ function coincideBusqueda(tel, c) {
   const digitos = q.replace(/\D/g, '');
   if (digitos && tel.replace(/\D/g, '').includes(digitos)) return true;
   if (tel.toLowerCase().includes(q)) return true;
+  if (etiquetasDe(tel).some((n) => n.toLowerCase().includes(q))) return true;
   return c.mensajes.some((m) => (m.mensaje || '').toLowerCase().includes(q));
 }
 
@@ -846,6 +1040,7 @@ function pintarLista() {
         <div class="preview">${ultimo.direccion === 'saliente' ? '↩ ' : ''}${escapeHtml(textoVisible(ultimo.mensaje))}</div>
         ${notaPausa}
         ${notaEspecial}
+        ${chipsDe(tel)}
       </div>
       ${badge}
     `;
@@ -890,7 +1085,24 @@ function construirChat(tel) {
         <div id="cabecera-telefono">${escapeHtml(tel)}</div>
       </div>
       <button id="bot" type="button"></button>
+      <button id="ficha-btn" type="button" aria-expanded="false" aria-controls="ficha">Ficha</button>
     </div>
+    <section id="ficha" hidden>
+      <div class="ficha-titulo">Etiquetas</div>
+      <div id="ficha-etiquetas"></div>
+      <form id="form-etiqueta" class="form-ficha">
+        <input id="nueva-etiqueta" list="lista-etiquetas" maxlength="40" placeholder="Agregar etiqueta" aria-label="Agregar etiqueta" autocomplete="off">
+        <datalist id="lista-etiquetas"></datalist>
+        <button type="submit">Agregar</button>
+      </form>
+      <div class="ficha-titulo segundo">Notas internas</div>
+      <form id="form-nota" class="form-ficha">
+        <textarea id="nueva-nota" rows="2" maxlength="2000" placeholder="La clienta no ve estas notas" aria-label="Nueva nota interna"></textarea>
+        <button type="submit">Guardar</button>
+      </form>
+      <div id="ficha-notas"></div>
+      <div id="ficha-estado" role="status"></div>
+    </section>
     <div id="hilo"></div>
     <div id="pie-chat">
       <div id="responder">
@@ -902,6 +1114,9 @@ function construirChat(tel) {
   `;
   document.getElementById('volver').onclick = () => history.back();
   document.getElementById('bot').onclick = () => cambiarPausa(tel);
+  document.getElementById('ficha-btn').onclick = () => abrirFicha(tel);
+  conectarFormulario('form-etiqueta', 'nueva-etiqueta', 'poner_etiqueta', tel);
+  conectarFormulario('form-nota', 'nueva-nota', 'nota', tel);
   actualizarBotonBot(tel);
 
   const btn = document.getElementById('enviar');
