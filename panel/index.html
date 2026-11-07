@@ -15,7 +15,6 @@
     margin: 0 auto;
     background: #f5f0eb;
     color: #3a2f2a;
-    max-width: 1400px;
     height: 100vh;
     height: 100dvh;
     display: flex;
@@ -380,13 +379,14 @@
     min-height: 0;
   }
   .columna {
-    flex: 1 0 13rem;
+    flex: 1 1 0;
+    /* Sin este mínimo, un mensaje largo ensancha la columna y saca las otras de la pantalla */
+    min-width: 13rem;
     display: flex;
     flex-direction: column;
     background: #ece4dc;
     border-radius: 0.6rem;
     min-height: 0;
-    max-width: 24rem;
   }
   .columna.encima { outline: 2px solid #a85a70; outline-offset: -2px; }
   .columna-titulo {
@@ -454,11 +454,24 @@
     font-size: 16px;
   }
   .tarjeta-marca { font-size: 0.72em; color: #6b5d55; white-space: nowrap; }
+  .tarjeta-acciones { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-top: 0.45rem; }
+  .tarjeta-accion {
+    padding: 0.3rem 0.65rem;
+    border: 1px solid #a85a70;
+    border-radius: 1rem;
+    background: white;
+    color: #a85a70;
+    font-weight: 600;
+    font-size: 0.78em;
+    cursor: pointer;
+  }
+  .tarjeta-accion:hover { background: #fbeef2; }
+  .tarjeta .nota-pausa { font-size: 0.75em; color: #6b5200; font-weight: 600; }
 
   /* Celular: una sola columna; la lista y el chat se turnan la pantalla */
   @media (max-width: 760px) {
     .pestana { max-width: none; }
-    .columna { flex: 0 0 85%; max-width: none; }
+    .columna { flex: 0 0 85%; min-width: 0; }
     header { padding: 0.75rem 1rem; font-size: 1.1rem; }
     #lista { width: 100%; border-right: none; }
     #conversacion { display: none; }
@@ -822,7 +835,7 @@ function pintarEmbudo() {
   const telefonos = Object.keys(contactos).sort((a, b) => contactos[b].mensajes.at(-1).creado_en.localeCompare(contactos[a].mensajes.at(-1).creado_en));
   for (const tel of telefonos) grupos.get(etapaDe(tel, contactos[tel])).push(tel);
 
-  const firma = JSON.stringify([...grupos].map(([n, t]) => [n, t.map((x) => [x, contactos[x].nombre, contactos[x].mensajes.at(-1).creado_en, etiquetasDe(x)])]));
+  const firma = JSON.stringify([...grupos].map(([n, t]) => [n, t.map((x) => [x, contactos[x].nombre, contactos[x].mensajes.at(-1).creado_en, etiquetasDe(x), pausasConocidas && pausados.has(claveContacto(x))])]));
   if (firma === firmaEmbudo) return;
   firmaEmbudo = firma;
   const posicion = tablero.scrollLeft;
@@ -876,10 +889,21 @@ function crearTarjeta(tel, etapaActual) {
       <select class="tarjeta-mover" aria-label="Cambiar etapa">${opciones}</select>
       ${guardada ? '<span class="tarjeta-marca">A mano</span>' : ''}
     </div>
+    <div class="tarjeta-acciones">
+      <button class="tarjeta-accion tarjeta-chat" type="button">Ver chat</button>
+      <button class="tarjeta-accion tarjeta-ficha" type="button">Ficha</button>
+      ${pausasConocidas && pausados.has(claveContacto(tel)) ? '<span class="nota-pausa">Bot pausado</span>' : ''}
+    </div>
   `;
-  t.querySelector('.tarjeta-nombre').onclick = () => {
+  const irAlChat = () => {
     activarVista('conversaciones');
     abrirChat(tel);
+  };
+  t.querySelector('.tarjeta-nombre').onclick = irAlChat;
+  t.querySelector('.tarjeta-chat').onclick = irAlChat;
+  t.querySelector('.tarjeta-ficha').onclick = () => {
+    irAlChat();
+    abrirFicha(tel);
   };
   const lista = t.querySelector('.tarjeta-mover');
   lista.onchange = () => { lista.blur(); moverEtapa(tel, lista.value); };
