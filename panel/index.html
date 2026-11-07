@@ -624,15 +624,7 @@ async function cargar() {
   }
   avisoConexion(false);
   const rows = await res.json();
-  contactos = {};
-  for (const r of rows) {
-    if (!contactos[r.telefono]) contactos[r.telefono] = { nombre: r.nombre_contacto || r.telefono, mensajes: [] };
-    if (r.nombre_contacto) contactos[r.telefono].nombre = r.nombre_contacto;
-    contactos[r.telefono].mensajes.push(r);
-  }
-  for (const tel in contactos) {
-    contactos[tel].mensajes.sort((a, b) => a.creado_en.localeCompare(b.creado_en));
-  }
+  contactos = agruparContactos(rows);
 
   try {
     const resEstados = await fetch(WEBHOOK_ESTADOS, { headers: { Authorization: authHeader } });
@@ -948,6 +940,29 @@ async function moverEtapa(tel, etapa) {
     aviso.textContent = 'No se pudo guardar el cambio. La clienta sigue en su etapa.';
     aviso.dataset.mensaje = '1';
   }
+}
+
+// El mismo celular puede estar guardado con y sin 57: en pantalla es una sola conversación.
+// Solo se une al mostrar; los mensajes guardados no se tocan.
+function telefonoCompleto(tel) {
+  const limpio = String(tel || '').trim();
+  if (/[A-Za-z]/.test(limpio)) return limpio;
+  const digitos = limpio.replace(/\D/g, '');
+  return /^3\d{9}$/.test(digitos) ? '57' + digitos : digitos;
+}
+
+function agruparContactos(filas) {
+  const ordenadas = [...filas].sort((a, b) => a.creado_en.localeCompare(b.creado_en));
+  const grupos = {};
+  for (const r of ordenadas) {
+    const tel = telefonoCompleto(r.telefono);
+    if (!grupos[tel]) grupos[tel] = { nombre: tel, mensajes: [] };
+    // Un nombre real gana sobre uno que solo repite el número
+    const nombre = (r.nombre_contacto || '').trim();
+    if (nombre && (!/^\+?\d+$/.test(nombre) || /^\+?\d+$/.test(grupos[tel].nombre))) grupos[tel].nombre = nombre;
+    grupos[tel].mensajes.push(r);
+  }
+  return grupos;
 }
 
 async function cargarPausas() {
