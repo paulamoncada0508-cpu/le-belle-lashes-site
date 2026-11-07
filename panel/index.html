@@ -551,6 +551,10 @@ let telefonoArrastrado = null;
 let firmaEmbudo = '';
 let etiquetasDisponibles = [];
 let etiquetasPorContacto = new Map();
+// Cada cambio tuyo sube su versión: una lectura que salió antes del cambio llega atrasada y se descarta
+let versionPausas = 0;
+let versionEmbudo = 0;
+let versionEtiquetas = 0;
 
 document.getElementById('pestana-conversaciones').onclick = () => activarVista('conversaciones');
 document.getElementById('pestana-embudo').onclick = () => activarVista('embudo');
@@ -655,8 +659,10 @@ async function llamarFicha(cuerpo) {
 }
 
 async function cargarEtiquetas() {
+  const version = versionEtiquetas;
   try {
     const datos = await llamarFicha({ accion: 'resumen' });
+    if (version !== versionEtiquetas) return;
     etiquetasDisponibles = datos.etiquetas;
     etiquetasPorContacto = new Map(datos.asignadas.map((a) => [claveContacto(a.telefono), a.etiquetas]));
   } catch (e) {
@@ -720,8 +726,10 @@ async function accionFicha(tel, datos) {
   const nombre = contactos[tel].nombre === tel ? '' : contactos[tel].nombre;
   estado.className = '';
   estado.textContent = 'Guardando...';
+  versionEtiquetas++;
   try {
     const r = await llamarFicha({ ...datos, telefono: tel, nombre });
+    versionEtiquetas++;
     etiquetasPorContacto.set(claveContacto(tel), r.etiquetas);
     if (datos.accion === 'poner_etiqueta') await cargarEtiquetas();
     pintarFicha(tel, r);
@@ -772,15 +780,18 @@ function activarVista(vista) {
 }
 
 async function cargarEmbudo() {
+  const version = versionEmbudo;
   try {
     const res = await fetch(WEBHOOK_VER_EMBUDO, { headers: { Authorization: authHeader } });
     if (!res.ok) throw new Error('sin datos');
     const datos = await res.json();
+    if (version !== versionEmbudo) return;
     etapasEmbudo = datos.etapas;
     etapasGuardadas = new Map(datos.contactos.map((c) => [claveContacto(c.telefono), c]));
     contactosConCita = new Set(datos.citas.map(claveContacto));
     embudoConError = false;
   } catch (e) {
+    if (version !== versionEmbudo) return;
     embudoConError = true;
   }
   pintarEmbudo();
@@ -918,6 +929,7 @@ async function moverEtapa(tel, etapa) {
   const aviso = document.getElementById('embudo-aviso');
   if (etapaDe(tel, contactos[tel]) === etapa) { pintarEmbudo(); return; }
   // Se muestra de una vez; si no se guarda, vuelve a su lugar
+  versionEmbudo++;
   etapasGuardadas.set(clave, { telefono: tel, etapa, cambiada: new Date().toISOString() });
   firmaEmbudo = '';
   pintarEmbudo();
@@ -927,6 +939,7 @@ async function moverEtapa(tel, etapa) {
       headers: { 'Content-Type': 'application/json', Authorization: authHeader },
       body: JSON.stringify({ telefono: tel, etapa, nombre: contactos[tel].nombre === tel ? '' : contactos[tel].nombre })
     });
+    versionEmbudo++;
     if (!res.ok) throw new Error('sin cambio');
     aviso.className = '';
     aviso.textContent = `${contactos[tel].nombre} pasó a ${etapa}.`;
@@ -966,14 +979,16 @@ function agruparContactos(filas) {
 }
 
 async function cargarPausas() {
+  const version = versionPausas;
   try {
     const res = await fetch(WEBHOOK_VER_PAUSAS, { headers: { Authorization: authHeader } });
     if (!res.ok) throw new Error('sin datos');
     const datos = await res.json();
+    if (version !== versionPausas) return;
     pausados = new Set(datos.pausados.map((p) => claveContacto(p.telefono)));
     pausasConocidas = true;
   } catch (e) {
-    pausasConocidas = false;
+    if (version === versionPausas) pausasConocidas = false;
   }
 }
 
@@ -1005,6 +1020,7 @@ async function cambiarPausa(tel) {
   const pausar = !pausados.has(claveContacto(tel));
   const estado = document.getElementById('estado');
   cambiandoPausa = true;
+  versionPausas++;
   actualizarBotonBot(tel);
   estado.textContent = pausar ? 'Pausando el bot...' : 'Reactivando el bot...';
   try {
@@ -1013,6 +1029,7 @@ async function cambiarPausa(tel) {
       headers: { 'Content-Type': 'application/json', Authorization: authHeader },
       body: JSON.stringify({ telefono: tel, pausado: pausar })
     });
+    versionPausas++;
     if (!res.ok) throw new Error('sin cambio');
     if (pausar) pausados.add(claveContacto(tel));
     else pausados.delete(claveContacto(tel));
